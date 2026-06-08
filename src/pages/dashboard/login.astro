@@ -1,6 +1,18 @@
 ---
 import '../../styles/global.css';
+import { createClient } from '../../lib/supabase';
 export const prerender = false;
+
+const supabase = createClient(Astro.cookies, Astro.request);
+const { data: { user } } = await supabase.auth.getUser();
+if (user) {
+  throw new Response(null, {
+    status: 302,
+    headers: {
+      location: '/dashboard',
+    },
+  });
+}
 
 const title = 'Acceso Agente — Maxi Motors';
 const description = 'Inicia sesión en el panel de agente de Maxi Motors';
@@ -52,29 +64,24 @@ const description = 'Inicia sesión en el panel de agente de Maxi Motors';
 </html>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-
-  const supabase = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      window.location.href = '/dashboard';
-    }
-  });
-
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorMsg = document.getElementById('error-msg');
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-    if (error) {
-      errorMsg.textContent = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+    const result = await response.json();
+
+    if (!response.ok) {
+      errorMsg.textContent = result.error || 'Credenciales inválidas. Verifica tu correo y contraseña.';
       errorMsg.classList.remove('hidden');
     } else {
       window.location.href = '/dashboard';
