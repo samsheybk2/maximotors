@@ -9,8 +9,12 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "^5.7.0",
+    "@astrojs/node": "^9.5.5",
     "@astrojs/tailwind": "^6.0.2",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "astro": "^5.7.0",
+    "cookie": "^1.1.1",
     "tailwindcss": "^3.4.17"
   }
 }

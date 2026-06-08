@@ -1,0 +1,281 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { createClient } from '../../lib/supabase';
+export const prerender = false;
+
+const supabase = createClient(Astro.cookies);
+const { data: { user } } = await supabase.auth.getUser();
+const { data: agent } = await supabase
+  .from('agents')
+  .select('*')
+  .eq('user_id', user?.id)
+  .single();
+
+const { data: vehicles } = await supabase
+  .from('vehicles')
+  .select('id, brand, model, year, license_plate')
+  .eq('agent_id', agent?.id)
+  .eq('status', 'disponible')
+  .order('created_at', { ascending: false });
+
+const { data: categories } = await supabase
+  .from('inspection_categories')
+  .select('*')
+  .order('display_order');
+
+const { data: items } = await supabase
+  .from('inspection_items')
+  .select('*')
+  .order('display_order');
+
+const inspectionId = Astro.url.searchParams.get('inspection');
+let currentInspection = null;
+let existingResults = [];
+if (inspectionId) {
+  const { data: ins } = await supabase.from('inspections').select('*').eq('id', inspectionId).single();
+  currentInspection = ins;
+  const { data: res } = await supabase.from('inspection_results').select('*').eq('inspection_id', inspectionId);
+  existingResults = res ?? [];
+}
+---
+
+<DashboardLayout title="Certificación — Maxi Motors" user={{ email: user?.email ?? '', name: agent?.full_name ?? user?.email ?? '' }}>
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-primary">Certificación de 140 Puntos</h1>
+      <p class="text-gray-500 text-sm mt-1">Inspección detallada para garantizar la calidad de cada vehículo</p>
+    </div>
+  </div>
+
+  <!-- Iniciar nueva certificación -->
+  {!inspectionId && (
+    <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 mb-8">
+      <h2 class="text-lg font-bold text-primary mb-5">Iniciar nueva certificación</h2>
+      <form id="start-inspection" class="sm:flex gap-4 items-end">
+        <div class="flex-1 mb-4 sm:mb-0">
+          <label class="block text-sm font-semibold text-primary mb-1">Seleccionar vehículo</label>
+          <select id="vehicle-select" required>
+            <option value="">— Selecciona un vehículo —</option>
+            {vehicles?.map(v => (
+              <option value={v.id}>{v.brand} {v.model} ({v.year}) — {v.license_plate ?? 'Sin placa'}</option>
+            ))}
+          </select>
+          {(!vehicles || vehicles.length === 0) && (
+            <p class="text-xs text-amber-600 mt-1">No hay vehículos disponibles. <a href="/dashboard/vehiculos?action=new" class="underline">Crear uno</a></p>
+          )}
+        </div>
+        <button type="submit" class="btn-primary text-sm px-8 py-3 whitespace-nowrap">
+          Iniciar Inspección →
+        </button>
+      </form>
+      <p id="start-msg" class="mt-3 text-sm hidden"></p>
+    </div>
+  )}
+
+  <!-- Formulario de inspección activa -->
+  {currentInspection && (
+    <>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-sm text-gray-500">Inspección activa</p>
+            <p class="font-bold text-primary">ID: {currentInspection.id.slice(0, 8)}...</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+              {items?.length ?? 0} puntos · {(existingResults.filter(r => r.result !== null).length)} revisados
+            </span>
+            <button id="complete-inspection" class="btn-primary text-sm px-6 py-2.5">
+              Completar Certificación ✓
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <form id="inspection-form" class="space-y-6">
+        <input type="hidden" name="inspection_id" value={currentInspection.id} />
+
+        {categories?.map(cat => {
+          const catItems = items?.filter(i => i.category_id === cat.id) ?? [];
+          return (
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div class="bg-primary px-6 py-4 flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span class="text-white text-xs font-bold">{cat.display_order}</span>
+                </div>
+                <h3 class="text-white font-bold">{cat.name}</h3>
+                <span class="ml-auto text-xs text-gray-300">{catItems.length} puntos</span>
+              </div>
+              <div class="divide-y divide-gray-50">
+                {catItems.map(item => {
+                  const existing = existingResults.find(r => r.item_id === item.id);
+                  return (
+                    <div class="px-6 py-3 flex flex-wrap items-center gap-3 hover:bg-gray-50 transition">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-primary">{item.name}</p>
+                        {item.description && <p class="text-xs text-gray-400">{item.description}</p>}
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <button type="button"
+                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
+                            {existing?.result === 'aprobado' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 text-gray-400 hover:border-green-300'}"
+                          data-item={item.id} data-result="aprobado">
+                          ✓ Aprobado
+                        </button>
+                        <button type="button"
+                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
+                            {existing?.result === 'observacion' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'border-gray-200 text-gray-400 hover:border-yellow-300'}"
+                          data-item={item.id} data-result="observacion">
+                          ⚠ Observación
+                        </button>
+                        <button type="button"
+                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
+                            {existing?.result === 'rechazado' ? 'bg-red-50 border-red-500 text-red-700' : 'border-gray-200 text-gray-400 hover:border-red-300'}"
+                          data-item={item.id} data-result="rechazado">
+                          ✕ Rechazado
+                        </button>
+                      </div>
+                      <div class="w-full sm:w-48">
+                        <input type="text"
+                          class="item-note text-xs px-3 py-1.5 border rounded-lg w-full {existing?.notes ? 'border-gray-300' : 'border-gray-100'}"
+                          data-item={item.id}
+                          placeholder="Nota (opcional)"
+                          value={existing?.notes ?? ''} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </form>
+    </>
+  )}
+
+  <!-- Historial -->
+  {!inspectionId && (
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <h2 class="text-lg font-bold text-primary mb-4">Historial de Certificaciones</h2>
+      <p class="text-gray-400 text-sm">Las certificaciones completadas aparecerán aquí.</p>
+    </div>
+  )}
+</DashboardLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  // Iniciar nueva inspección
+  const startForm = document.getElementById('start-inspection');
+  startForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const vehicleId = document.getElementById('vehicle-select').value;
+    const msg = document.getElementById('start-msg');
+
+    if (!vehicleId) {
+      msg.textContent = 'Selecciona un vehículo.';
+      msg.className = 'mt-3 text-sm text-red-600';
+      msg.classList.remove('hidden');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('inspections')
+      .insert({ vehicle_id: vehicleId, status: 'en_progreso' })
+      .select()
+      .single();
+
+    if (error) {
+      msg.textContent = 'Error: ' + error.message;
+      msg.className = 'mt-3 text-sm text-red-600';
+    } else {
+      window.location.href = '/dashboard/certificacion?inspection=' + data.id;
+    }
+    msg.classList.remove('hidden');
+  });
+
+  // Botones de resultado
+  let debounceTimers = {};
+
+  document.querySelectorAll('.result-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const itemId = this.dataset.item;
+      const result = this.dataset.result;
+      const inspectionId = document.querySelector('[name="inspection_id"]')?.value;
+
+      // UI: highlight selected
+      const group = this.closest('.flex-wrap');
+      group.querySelectorAll('.result-btn').forEach(b => {
+        b.className = b.className.replace(/bg-[\w-]+ border-[\w-]+ text-[\w-]+/g, '');
+        b.className = b.className.replace(/\s+/g, ' ');
+        b.className = b.className.replace('border-2', '');
+        b.className = b.className.trim();
+        const base = 'px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition border-gray-200 text-gray-400';
+        b.className = base;
+      });
+      this.className = this.className.replace('border-gray-200 text-gray-400', '');
+      if (result === 'aprobado') this.className += ' bg-green-50 border-green-500 text-green-700';
+      else if (result === 'observacion') this.className += ' bg-yellow-50 border-yellow-500 text-yellow-700';
+      else if (result === 'rechazado') this.className += ' bg-red-50 border-red-500 text-red-700';
+
+      const note = group.querySelector('.item-note')?.value || '';
+
+      // Debounce upsert
+      if (debounceTimers[itemId]) clearTimeout(debounceTimers[itemId]);
+      debounceTimers[itemId] = setTimeout(async () => {
+        await supabase.from('inspection_results').upsert({
+          inspection_id: inspectionId,
+          item_id: itemId,
+          result,
+          notes: note || null,
+        }, { onConflict: 'inspection_id, item_id' });
+      }, 300);
+    });
+  });
+
+  // Notas guardan automáticamente también
+  document.querySelectorAll('.item-note').forEach(input => {
+    input.addEventListener('input', function () {
+      const itemId = this.dataset.item;
+      const inspectionId = document.querySelector('[name="inspection_id"]')?.value;
+      const group = this.closest('.flex-wrap');
+      const activeBtn = group.querySelector('.result-btn.bg-green-50, .result-btn.bg-yellow-50, .result-btn.bg-red-50');
+      const result = activeBtn?.dataset?.result || null;
+
+      if (debounceTimers[itemId]) clearTimeout(debounceTimers[itemId]);
+      debounceTimers[itemId] = setTimeout(async () => {
+        if (result) {
+          await supabase.from('inspection_results').upsert({
+            inspection_id: inspectionId,
+            item_id: itemId,
+            result,
+            notes: this.value || null,
+          }, { onConflict: 'inspection_id, item_id' });
+        }
+      }, 500);
+    });
+  });
+
+  // Completar inspección
+  document.getElementById('complete-inspection')?.addEventListener('click', async () => {
+    if (!confirm('¿Finalizar esta certificación? Los resultados se guardarán como definitivos.')) return;
+
+    const inspectionId = document.querySelector('[name="inspection_id"]')?.value;
+    const { error } = await supabase
+      .from('inspections')
+      .update({ status: 'completada', completed_at: new Date().toISOString() })
+      .eq('id', inspectionId);
+
+    if (error) {
+      alert('Error al completar: ' + error.message);
+    } else {
+      alert('✅ Certificación completada exitosamente.');
+      window.location.href = '/dashboard/certificacion';
+    }
+  });
+</script>

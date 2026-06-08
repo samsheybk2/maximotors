@@ -1,0 +1,163 @@
+---
+import '../styles/global.css';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+
+export interface Props {
+  title?: string;
+  user: { email: string; name: string };
+}
+
+const { title = 'Dashboard — Maxi Motors', user } = Astro.props;
+
+const navLinks = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { href: '/dashboard/clientes', label: 'Clientes', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+  { href: '/dashboard/vehiculos', label: 'Vehículos', icon: 'M8 7h8m-4-4v4M8 14h8m-8 4h4m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+  { href: '/dashboard/certificacion', label: 'Certificación', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-gray-50 font-sans antialiased">
+    <div class="flex min-h-screen">
+      <!-- Sidebar -->
+      <aside class="hidden lg:flex flex-col w-64 bg-primary text-white">
+        <div class="p-5 border-b border-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+              <span class="text-primary font-extrabold text-lg">M</span>
+            </div>
+            <div>
+              <p class="font-bold">MAXI MOTORS</p>
+              <p class="text-xs text-gray-400">Panel del Agente</p>
+            </div>
+          </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+          {navLinks.map(link => (
+            <a
+              href={link.href}
+              class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition text-sm font-medium"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={link.icon} />
+              </svg>
+              {link.label}
+            </a>
+          ))}
+        </nav>
+        <div class="p-4 border-t border-white/10">
+          <div class="flex items-center gap-3 px-4 py-2">
+            <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-sm font-bold">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">{user.name}</p>
+              <p class="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+            <button id="logout-btn" class="text-gray-400 hover:text-white transition" title="Cerrar sesión">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Mobile header -->
+      <div class="lg:hidden fixed top-0 left-0 right-0 bg-primary text-white z-50 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+            <span class="text-primary font-extrabold text-sm">M</span>
+          </div>
+          <span class="font-bold text-sm">MAXI MOTORS</span>
+        </div>
+        <button id="mobile-menu-btn" class="p-1" aria-label="Menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="mobile-sidebar" class="hidden fixed inset-0 z-40 lg:hidden">
+        <div class="absolute inset-0 bg-black/50" id="sidebar-overlay"></div>
+        <aside class="relative w-64 bg-primary text-white h-full p-5">
+          <div class="flex items-center justify-between mb-6">
+            <span class="font-bold">MAXI MOTORS</span>
+            <button id="close-sidebar" class="text-gray-400">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <nav class="space-y-1">
+            {navLinks.map(link => (
+              <a href={link.href} class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={link.icon} />
+                </svg>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <div class="absolute bottom-5 left-5 right-5">
+            <button id="logout-btn-mobile" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition text-sm w-full">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Main content -->
+      <main class="flex-1 lg:ml-64 mt-14 lg:mt-0 p-4 sm:p-6 lg:p-8">
+        <slot />
+      </main>
+    </div>
+    <WhatsAppButton />
+
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      const supabase = createClient(
+        import.meta.env.PUBLIC_SUPABASE_URL,
+        import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+      );
+
+      async function logout() {
+        await supabase.auth.signOut();
+        window.location.href = '/dashboard/login';
+      }
+
+      document.getElementById('logout-btn')?.addEventListener('click', logout);
+      document.getElementById('logout-btn-mobile')?.addEventListener('click', logout);
+
+      // Mobile sidebar
+      const openBtn = document.getElementById('mobile-menu-btn');
+      const sidebar = document.getElementById('mobile-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const closeBtn = document.getElementById('close-sidebar');
+
+      openBtn?.addEventListener('click', () => sidebar?.classList.remove('hidden'));
+      overlay?.addEventListener('click', () => sidebar?.classList.add('hidden'));
+      closeBtn?.addEventListener('click', () => sidebar?.classList.add('hidden'));
+
+      // Close mobile sidebar on nav click
+      document.querySelectorAll('#mobile-sidebar nav a').forEach(a => {
+        a.addEventListener('click', () => sidebar?.classList.add('hidden'));
+      });
+    </script>
+  </body>
+</html>
