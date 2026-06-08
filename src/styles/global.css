@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1D3557;
+}
+
+.swiper-pagination-bullet-active {
+  background: #E63946 !important;
+}
+
+.whatsapp-float {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(37, 211, 102, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+input, select {
+  @apply border border-gray-300 rounded-lg px-4 py-3 w-full text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition;
+}
+
+.btn-primary {
+  @apply bg-accent text-white font-semibold px-8 py-3 rounded-lg hover:bg-red-700 transition duration-300 inline-block text-center;
+}
+
+.btn-outline {
+  @apply border-2 border-primary text-primary font-semibold px-8 py-3 rounded-lg hover:bg-primary hover:text-white transition duration-300 inline-block text-center;
+}
+
+.card-vehicle {
+  @apply bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300;
+}
