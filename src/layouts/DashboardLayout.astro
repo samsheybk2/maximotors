@@ -132,13 +132,20 @@ const navLinks = [
       );
 
       async function logout() {
-        // Call server endpoint to clear Supabase auth cookies, then clear client session
+        // Clear session on server and client to avoid redirect loops in production
         try {
-          await fetch('/api/auth/logout', { method: 'POST' });
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
         } catch (err) {
-          // fallback to client signOut if server call fails
-          await supabase.auth.signOut();
+          // ignore server error and continue to clear client session
         }
+
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          // ignore client signOut error
+        }
+
+        // Ensure we end up at the login page
         window.location.href = '/dashboard/login';
       }
 
