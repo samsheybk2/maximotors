@@ -23,7 +23,8 @@ const navLinks = [
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/webp" href="/images/logo.webp" />
+    <link rel="apple-touch-icon" href="/images/logo.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -34,9 +35,7 @@ const navLinks = [
       <aside class="hidden lg:flex flex-col w-64 bg-primary text-white">
         <div class="p-5 border-b border-white/10">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-              <span class="text-primary font-extrabold text-lg">M</span>
-            </div>
+            <img src="/images/logo.webp" alt="Maxi Motors" class="h-10 w-auto brightness-0 invert" />
             <div>
               <p class="font-bold">MAXI MOTORS</p>
               <p class="text-xs text-gray-400">Panel del Agente</p>
@@ -77,9 +76,7 @@ const navLinks = [
       <!-- Mobile header -->
       <div class="lg:hidden fixed top-0 left-0 right-0 bg-primary text-white z-50 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span class="text-primary font-extrabold text-sm">M</span>
-          </div>
+          <img src="/images/logo.webp" alt="Maxi Motors" class="h-8 w-auto brightness-0 invert" />
           <span class="font-bold text-sm">MAXI MOTORS</span>
         </div>
         <button id="mobile-menu-btn" class="p-1" aria-label="Menú">
