@@ -132,7 +132,13 @@ const navLinks = [
       );
 
       async function logout() {
-        await supabase.auth.signOut();
+        // Call server endpoint to clear Supabase auth cookies, then clear client session
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (err) {
+          // fallback to client signOut if server call fails
+          await supabase.auth.signOut();
+        }
         window.location.href = '/dashboard/login';
       }
 
