@@ -1,6 +1,5 @@
 ---
-import '../styles/global.css';
-import WhatsAppButton from '../components/WhatsAppButton.astro';
+    import '../styles/global.css';
 
 export interface Props {
   title?: string;
@@ -32,13 +31,13 @@ const navLinks = [
   <body class="bg-gray-50 font-sans antialiased">
     <div class="flex min-h-screen">
       <!-- Sidebar -->
-      <aside class="hidden lg:flex flex-col w-64 bg-primary text-white">
+      <aside class="hidden lg:flex flex-col w-64 bg-primary text-white h-screen sticky top-0">
         <div class="p-5 border-b border-white/10">
           <div class="flex items-center gap-3">
-            <img src="/images/logo.webp" alt="Maxi Motors" class="h-10 w-auto brightness-0 invert" />
+            <img src="/images/logo.webp" alt="Maxi Motors" class="h-10 w-auto" />
             <div>
               <p class="font-bold">MAXI MOTORS</p>
-              <p class="text-xs text-gray-400">Panel del Agente</p>
+              <p class="text-xs text-blue-200">Panel del Agente</p>
             </div>
           </div>
         </div>
@@ -76,7 +75,7 @@ const navLinks = [
       <!-- Mobile header -->
       <div class="lg:hidden fixed top-0 left-0 right-0 bg-primary text-white z-50 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <img src="/images/logo.webp" alt="Maxi Motors" class="h-8 w-auto brightness-0 invert" />
+          <img src="/images/logo.webp" alt="Maxi Motors" class="h-8 w-auto" />
           <span class="font-bold text-sm">MAXI MOTORS</span>
         </div>
         <button id="mobile-menu-btn" class="p-1" aria-label="Menú">
@@ -119,11 +118,10 @@ const navLinks = [
       </div>
 
       <!-- Main content -->
-      <main class="flex-1 lg:ml-64 mt-14 lg:mt-0 p-4 sm:p-6 lg:p-8">
+      <main class="flex-1 mt-14 lg:mt-0 p-4 sm:p-6">
         <slot />
       </main>
     </div>
-    <WhatsAppButton />
 
     <script>
       import { createClient } from '@supabase/supabase-js';

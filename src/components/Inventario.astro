@@ -1,54 +1,25 @@
 ---
-const vehicles = [
-  {
-    img: '/images/toyota-hilux.webp',
-    name: 'Toyota Hilux SR5',
-    year: 2022,
-    km: '45,000 km',
-    price: '$34,900',
-    tag: 'Certificado',
-  },
-  {
-    img: '/images/hyundai-tucson.webp',
-    name: 'Hyundai Tucson Limited',
-    year: 2023,
-    km: '28,000 km',
-    price: '$25,500',
-    tag: 'Certificado',
-  },
-  {
-    img: '/images/kia-sportage.webp',
-    name: 'Kia Sportage EX',
-    year: 2021,
-    km: '52,000 km',
-    price: '$19,900',
-    tag: 'Certificado',
-  },
-  {
-    img: '/images/nissan-sentra.webp',
-    name: 'Nissan Sentra SR',
-    year: 2022,
-    km: '33,000 km',
-    price: '$17,500',
-    tag: 'Certificado',
-  },
-  {
-    img: '/images/ford-explorer.webp',
-    name: 'Ford Explorer XLT',
-    year: 2020,
-    km: '61,000 km',
-    price: '$28,900',
-    tag: 'Certificado',
-  },
-  {
-    img: '/images/chevrolet-traverse.webp',
-    name: 'Chevrolet Traverse LT',
-    year: 2021,
-    km: '48,000 km',
-    price: '$26,500',
-    tag: 'Certificado',
-  },
-];
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+);
+
+const { data: vehicles } = await supabase
+  .from('vehicles')
+  .select('*')
+  .eq('status', 'disponible')
+  .order('created_at', { ascending: false })
+  .limit(6);
+
+const featured = (vehicles ?? []).map(v => ({
+  name: `${v.brand} ${v.model}`,
+  year: v.year,
+  km: v.mileage ? `${v.mileage.toLocaleString()} km` : null,
+  price: v.price ? `$${Number(v.price).toLocaleString()}` : null,
+  tag: 'Certificado',
+}));
 ---
 
 <section class="py-20 bg-gr-claro" id="inventario">
@@ -63,7 +34,7 @@ const vehicles = [
     </div>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-      {vehicles.map(v => (
+      {featured.map(v => (
         <div class="card-vehicle group">
           <div class="relative overflow-hidden aspect-[4/3] bg-gray-200">
             <div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-400 text-sm">
@@ -82,11 +53,10 @@ const vehicles = [
             <h3 class="text-lg font-bold text-primary mb-2">{v.name}</h3>
             <div class="flex items-center gap-3 text-sm text-gray-500 mb-3">
               <span>{v.year}</span>
-              <span>•</span>
-              <span>{v.km}</span>
+              {v.km && <><span>•</span><span>{v.km}</span></>}
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-2xl font-bold text-accent">{v.price}</span>
+              <span class="text-2xl font-bold text-accent">{v.price ?? 'A consultar'}</span>
               <a href={`https://wa.me/50760000000?text=Hola%2C%20quiero%20informaci%C3%B3n%20del%20${encodeURIComponent(v.name)}`} target="_blank" class="bg-cert text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition">
                 Cotizar
               </a>
@@ -95,6 +65,15 @@ const vehicles = [
         </div>
       ))}
     </div>
+
+    {featured.length === 0 && (
+      <div class="text-center py-20 text-gray-400">
+        <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h8m-4-4v4M8 14h8m-8 4h4m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-lg">No hay vehículos disponibles en este momento.</p>
+      </div>
+    )}
 
     <div class="text-center mt-12">
       <a href="/inventario" class="btn-primary text-lg px-12 py-4">

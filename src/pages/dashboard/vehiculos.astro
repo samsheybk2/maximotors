@@ -3,7 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { createClient } from '../../lib/supabase';
 export const prerender = false;
 
-const supabase = createClient(Astro.cookies);
+const supabase = createClient(Astro.cookies, Astro.request);
 const { data: { user } } = await supabase.auth.getUser();
 const { data: agent } = await supabase
   .from('agents')
@@ -38,42 +38,41 @@ if (editId) {
       <h1 class="text-2xl sm:text-3xl font-bold text-primary">Vehículos</h1>
       <p class="text-gray-500 text-sm mt-1">{vehicles?.length ?? 0} vehículos en inventario</p>
     </div>
-    <a href="/dashboard/vehiculos?action=new" class="btn-primary text-sm px-5 py-2.5 flex items-center gap-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-      Nuevo Vehículo
+    <a href="/dashboard/vehiculos?action=new" class="bg-accent hover:bg-red-700 text-white font-semibold rounded-lg transition text-sm px-5 py-2.5 inline-flex items-center gap-2 shrink-0 w-auto">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+      <span>Nuevo Vehículo</span>
     </a>
   </div>
 
   {(action === 'new' || editingVehicle) && (
     <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 mb-8">
       <h2 class="text-lg font-bold text-primary mb-5">{editingVehicle ? 'Editar Vehículo' : 'Nuevo Vehículo'}</h2>
-      <form id="vehicle-form" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <form id="vehicle-form" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 uppercase-input" data-edit-brand={editingVehicle?.brand ?? ''} data-edit-model={editingVehicle?.model ?? ''} data-edit-year={editingVehicle?.year ?? ''}>
         <input type="hidden" name="id" value={editingVehicle?.id ?? ''} />
+        <input type="hidden" name="agent_id" value={agent?.id ?? ''} />
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Marca *</label>
-          <input type="text" name="brand" required value={editingVehicle?.brand ?? ''} placeholder="Ej: Toyota" list="brands" />
-          <datalist id="brands">
-            <option value="Toyota" /><option value="Hyundai" /><option value="Kia" /><option value="Nissan" />
-            <option value="Ford" /><option value="Chevrolet" /><option value="Mitsubishi" /><option value="Suzuki" />
-            <option value="Honda" /><option value="Mazda" /><option value="Volkswagen" /><option value="BMW" />
-            <option value="Mercedes-Benz" /><option value="Audi" />
-          </datalist>
+          <select name="brand" id="brand-select" required>
+            <option value="">Seleccionar marca</option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Modelo *</label>
-          <input type="text" name="model" required value={editingVehicle?.model ?? ''} placeholder="Ej: Hilux" />
+          <input type="text" name="model" id="model-input" required value={editingVehicle?.model ?? ''} placeholder="Selecciona primero una marca" list="model-list" class="uppercase" disabled />
+          <datalist id="model-list"></datalist>
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Año *</label>
-          <input type="number" name="year" required min="2000" max="2026" value={editingVehicle?.year ?? ''} placeholder="2022" />
+          <input type="text" name="year" id="year-input" required value={editingVehicle?.year ?? ''} placeholder="Selecciona primero un modelo" list="year-list" disabled />
+          <datalist id="year-list"></datalist>
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">VIN</label>
-          <input type="text" name="vin" value={editingVehicle?.vin ?? ''} placeholder="Número de serie" />
+          <input type="text" name="vin" value={editingVehicle?.vin ?? ''} placeholder="NÚMERO DE SERIE" class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Placa</label>
-          <input type="text" name="license_plate" value={editingVehicle?.license_plate ?? ''} placeholder="Placa" />
+          <input type="text" name="license_plate" value={editingVehicle?.license_plate ?? ''} placeholder="PLACA" class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Kilometraje</label>
@@ -81,7 +80,7 @@ if (editId) {
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Color</label>
-          <input type="text" name="color" value={editingVehicle?.color ?? ''} placeholder="Ej: Blanco" />
+          <input type="text" name="color" value={editingVehicle?.color ?? ''} placeholder="Ej: BLANCO" class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Combustible</label>
@@ -125,7 +124,7 @@ if (editId) {
         </div>
         <div class="sm:col-span-2 lg:col-span-3">
           <label class="block text-sm font-semibold text-primary mb-1">Notas</label>
-          <input type="text" name="notes" value={editingVehicle?.notes ?? ''} placeholder="Notas adicionales" />
+          <input type="text" name="notes" value={editingVehicle?.notes ?? ''} placeholder="NOTAS ADICIONALES" class="uppercase" />
         </div>
         <div class="sm:col-span-2 lg:col-span-3 flex gap-3">
           <button type="submit" class="btn-primary text-sm px-8 py-2.5">
@@ -192,6 +191,7 @@ if (editId) {
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { brands, vehicleData } from '../../data/vehicles';
 
   const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -199,24 +199,120 @@ if (editId) {
   );
 
   const form = document.getElementById('vehicle-form');
+  const brandSelect = document.getElementById('brand-select');
+  const modelInput = document.getElementById('model-input');
+  const modelList = document.getElementById('model-list');
+  const yearInput = document.getElementById('year-input');
+  const yearList = document.getElementById('year-list');
+
+  const editingBrand = form?.dataset.editBrand || null;
+  const editingModel = form?.dataset.editModel || null;
+  const editingYear = form?.dataset.editYear || null;
+
+  brands.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b; opt.textContent = b;
+    if (b === editingBrand) opt.selected = true;
+    brandSelect?.appendChild(opt);
+  });
+
+  function updateModels(selectedBrand) {
+    modelInput.value = '';
+    modelInput.disabled = true;
+    modelInput.placeholder = 'Primero selecciona una marca';
+    modelList.innerHTML = '';
+    yearInput.value = '';
+    yearInput.disabled = true;
+    yearInput.placeholder = 'Primero selecciona un modelo';
+    yearList.innerHTML = '';
+
+    if (!selectedBrand || !vehicleData[selectedBrand]) return;
+
+    const models = Object.keys(vehicleData[selectedBrand].models).sort();
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      modelList?.appendChild(opt);
+    });
+    modelInput.disabled = false;
+    modelInput.placeholder = 'Escribe o selecciona un modelo';
+
+    if (editingBrand === selectedBrand) {
+      modelInput.value = editingModel && models.includes(editingModel)
+        ? editingModel
+        : (editingModel || '');
+      updateYears(modelInput.value, selectedBrand);
+    }
+  }
+
+  function updateYears(selectedModel, selectedBrand) {
+    yearInput.value = '';
+    yearInput.disabled = true;
+    yearInput.placeholder = 'Primero selecciona un modelo';
+    yearList.innerHTML = '';
+
+    const brand = selectedBrand || brandSelect?.value;
+    if (!brand || !selectedModel || !vehicleData[brand]?.models[selectedModel]) {
+      yearInput.disabled = false;
+      yearInput.placeholder = 'Escribe el año';
+      return;
+    }
+
+    const years = vehicleData[brand].models[selectedModel].slice().reverse();
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = y;
+      yearList?.appendChild(opt);
+    });
+    yearInput.disabled = false;
+    yearInput.placeholder = 'Escribe o selecciona un año';
+
+    if (editingModel === selectedModel && editingBrand === brand && editingYear) {
+      yearInput.value = editingYear;
+    } else if (editingBrand === brand && editingModel === selectedModel) {
+      yearInput.value = editingYear || '';
+    }
+  }
+
+  brandSelect?.addEventListener('change', () => {
+    updateModels(brandSelect.value);
+  });
+
+  modelInput?.addEventListener('input', () => {
+    updateYears(modelInput.value);
+  });
+
+  if (editingBrand) {
+    updateModels(editingBrand);
+  }
+
+  document.querySelectorAll('#vehicle-form input.uppercase').forEach(inp => {
+    inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase(); });
+  });
+
+  function toUppercase(val) {
+    return typeof val === 'string' ? val.toUpperCase() : val;
+  }
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const id = fd.get('id');
     const payload = {
+      agent_id: fd.get('agent_id') || null,
       brand: fd.get('brand'),
       model: fd.get('model'),
-      year: parseInt(fd.get('year')),
-      vin: fd.get('vin') || null,
-      license_plate: fd.get('license_plate') || null,
+      year: fd.get('year') ? parseInt(fd.get('year')) : null,
+      vin: toUppercase(fd.get('vin')) || null,
+      license_plate: toUppercase(fd.get('license_plate')) || null,
       mileage: fd.get('mileage') ? parseInt(fd.get('mileage')) : null,
-      color: fd.get('color') || null,
+      color: toUppercase(fd.get('color')) || null,
       fuel_type: fd.get('fuel_type') || null,
       transmission: fd.get('transmission') || null,
       price: fd.get('price') ? parseFloat(fd.get('price')) : null,
       status: fd.get('status') || 'disponible',
       client_id: fd.get('client_id') || null,
-      notes: fd.get('notes') || null,
+      notes: toUppercase(fd.get('notes')) || null,
     };
 
     const msg = document.getElementById('vehicle-msg');

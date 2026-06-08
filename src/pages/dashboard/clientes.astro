@@ -3,7 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { createClient } from '../../lib/supabase';
 export const prerender = false;
 
-const supabase = createClient(Astro.cookies);
+const supabase = createClient(Astro.cookies, Astro.request);
 const { data: { user } } = await supabase.auth.getUser();
 const { data: agent } = await supabase
   .from('agents')
@@ -32,9 +32,9 @@ if (editId) {
       <h1 class="text-2xl sm:text-3xl font-bold text-primary">Clientes</h1>
       <p class="text-gray-500 text-sm mt-1">{clients?.length ?? 0} clientes registrados</p>
     </div>
-    <a href="/dashboard/clientes?action=new" class="btn-primary text-sm px-5 py-2.5 flex items-center gap-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-      Nuevo Cliente
+    <a href="/dashboard/clientes?action=new" class="bg-accent hover:bg-red-700 text-white font-semibold rounded-lg transition text-sm px-5 py-2.5 inline-flex items-center gap-2 shrink-0 w-auto">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+      <span>Nuevo Cliente</span>
     </a>
   </div>
 
@@ -42,11 +42,12 @@ if (editId) {
   {(action === 'new' || editingClient) && (
     <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 mb-8">
       <h2 class="text-lg font-bold text-primary mb-5">{editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
-      <form id="client-form" class="grid sm:grid-cols-2 gap-4">
+      <form id="client-form" class="grid sm:grid-cols-2 gap-4 uppercase-input">
         <input type="hidden" name="id" value={editingClient?.id ?? ''} />
+        <input type="hidden" name="agent_id" value={agent?.id ?? ''} />
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Nombre completo</label>
-          <input type="text" name="full_name" required value={editingClient?.full_name ?? ''} placeholder="Ej: Juan Pérez" />
+          <input type="text" name="full_name" required value={editingClient?.full_name ?? ''} placeholder="Ej: Juan Pérez" class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Correo electrónico</label>
@@ -67,20 +68,20 @@ if (editId) {
           </div>
           <div>
             <label class="block text-sm font-semibold text-primary mb-1">Número ID</label>
-            <input type="text" name="id_number" value={editingClient?.id_number ?? ''} placeholder="8-XXX-XXXX" />
+            <input type="text" name="id_number" value={editingClient?.id_number ?? ''} placeholder="8-XXX-XXXX" class="uppercase" />
           </div>
         </div>
         <div class="sm:col-span-2">
           <label class="block text-sm font-semibold text-primary mb-1">Dirección</label>
-          <input type="text" name="address" value={editingClient?.address ?? ''} placeholder="Dirección completa" />
+          <input type="text" name="address" value={editingClient?.address ?? ''} placeholder="Dirección completa" class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Ciudad</label>
-          <input type="text" name="city" value={editingClient?.city ?? 'Ciudad de Panamá'} />
+          <input type="text" name="city" value={editingClient?.city ?? 'CIUDAD DE PANAMÁ'} class="uppercase" />
         </div>
         <div>
           <label class="block text-sm font-semibold text-primary mb-1">Notas</label>
-          <input type="text" name="notes" value={editingClient?.notes ?? ''} placeholder="Notas adicionales" />
+          <input type="text" name="notes" value={editingClient?.notes ?? ''} placeholder="Notas adicionales" class="uppercase" />
         </div>
         <div class="sm:col-span-2 flex gap-3">
           <button type="submit" class="btn-primary text-sm px-8 py-2.5">
@@ -140,20 +141,29 @@ if (editId) {
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   );
 
+  function toUppercase(val) {
+    return typeof val === 'string' ? val.toUpperCase() : val;
+  }
+
+  document.querySelectorAll('#client-form input.uppercase').forEach(inp => {
+    inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase(); });
+  });
+
   const form = document.getElementById('client-form');
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const id = fd.get('id');
     const payload = {
-      full_name: fd.get('full_name'),
+      agent_id: fd.get('agent_id') || null,
+      full_name: toUppercase(fd.get('full_name')),
       email: fd.get('email') || null,
       phone: fd.get('phone') || null,
       id_type: fd.get('id_type') || null,
-      id_number: fd.get('id_number') || null,
-      address: fd.get('address') || null,
-      city: fd.get('city') || 'Ciudad de Panamá',
-      notes: fd.get('notes') || null,
+      id_number: toUppercase(fd.get('id_number')) || null,
+      address: toUppercase(fd.get('address')) || null,
+      city: toUppercase(fd.get('city')) || 'CIUDAD DE PANAMÁ',
+      notes: toUppercase(fd.get('notes')) || null,
     };
 
     const msg = document.getElementById('client-msg');

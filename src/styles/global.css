@@ -40,3 +40,15 @@ input, select {
 .card-vehicle {
   @apply bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300;
 }
+
+.uppercase-input input,
+.uppercase-input select,
+input.uppercase,
+select.uppercase {
+  text-transform: uppercase;
+}
+
+.uppercase-input input::placeholder,
+input.uppercase::placeholder {
+  text-transform: none;
+}
