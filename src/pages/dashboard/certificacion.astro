@@ -3,7 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { createClient } from '../../lib/supabase';
 export const prerender = false;
 
-const supabase = createClient(Astro.cookies);
+const supabase = createClient(Astro.cookies, Astro.request);
 const { data: { user } } = await supabase.auth.getUser();
 const { data: agent } = await supabase
   .from('agents')
@@ -28,14 +28,48 @@ const { data: items } = await supabase
   .select('*')
   .order('display_order');
 
+function activeResult(existingItems, itemId) {
+  const r = existingItems.find(e => e.item_id === itemId);
+  return r ? r.result : '';
+}
+
+function btnClass(existing, result) {
+  if (!existing) return 'border-gray-200 text-gray-400 hover:border-gray-300';
+  if (existing.result === result) {
+    if (result === 'aprobado') return 'bg-green-50 border-green-500 text-green-700';
+    if (result === 'observacion') return 'bg-yellow-50 border-yellow-500 text-yellow-700';
+    if (result === 'rechazado') return 'bg-red-50 border-red-500 text-red-700';
+  }
+  return 'border-gray-200 text-gray-400 hover:border-gray-300';
+}
+
 const inspectionId = Astro.url.searchParams.get('inspection');
 let currentInspection = null;
 let existingResults = [];
+let inspectionVehicle = null;
 if (inspectionId) {
   const { data: ins } = await supabase.from('inspections').select('*').eq('id', inspectionId).single();
   currentInspection = ins;
+  if (ins?.vehicle_id) {
+    const { data: vh } = await supabase.from('vehicles').select('*').eq('id', ins.vehicle_id).single();
+    inspectionVehicle = vh;
+  }
   const { data: res } = await supabase.from('inspection_results').select('*').eq('inspection_id', inspectionId);
   existingResults = res ?? [];
+}
+
+const { data: completedInspections } = await supabase
+  .from('inspections')
+  .select('*')
+  .eq('agent_id', agent?.id)
+  .eq('status', 'completada')
+  .order('completed_at', { ascending: false });
+let completedWithVehicles = [];
+if (completedInspections) {
+  const vIds = [...new Set(completedInspections.map(i => i.vehicle_id).filter(Boolean))];
+  const { data: vhData } = await supabase.from('vehicles').select('id, brand, model, year, license_plate').in('id', vIds);
+  const vhMap = Object.fromEntries((vhData ?? []).map(v => [v.id, v]));
+  completedWithVehicles = completedInspections.map(i => ({ ...i, vehicle: vhMap[i.vehicle_id] || null }));
 }
 ---
 
@@ -51,7 +85,7 @@ if (inspectionId) {
   {!inspectionId && (
     <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 mb-8">
       <h2 class="text-lg font-bold text-primary mb-5">Iniciar nueva certificación</h2>
-      <form id="start-inspection" class="sm:flex gap-4 items-end">
+      <form id="start-inspection" class="sm:flex gap-4 items-end" data-agent-id={agent?.id ?? ''}>
         <div class="flex-1 mb-4 sm:mb-0">
           <label class="block text-sm font-semibold text-primary mb-1">Seleccionar vehículo</label>
           <select id="vehicle-select" required>
@@ -82,9 +116,16 @@ if (inspectionId) {
             <p class="font-bold text-primary">ID: {currentInspection.id.slice(0, 8)}...</p>
           </div>
           <div class="flex gap-3">
-            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-              {items?.length ?? 0} puntos · {(existingResults.filter(r => r.result !== null).length)} revisados
+            <span id="progress-count" class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+              {items?.length ?? 0} puntos · <span id="reviewed-count">{(existingResults.filter(r => r.result !== null).length)}</span> revisados
             </span>
+            {currentInspection?.status === 'completada' && (
+              <a href={`/api/certificacion/${currentInspection.id}/pdf`} target="_blank"
+                class="bg-cert hover:bg-green-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition inline-flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Descargar PDF
+              </a>
+            )}
             <button id="complete-inspection" class="btn-primary text-sm px-6 py-2.5">
               Completar Certificación ✓
             </button>
@@ -117,27 +158,24 @@ if (inspectionId) {
                       </div>
                       <div class="flex items-center gap-1.5">
                         <button type="button"
-                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
-                            {existing?.result === 'aprobado' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 text-gray-400 hover:border-green-300'}"
-                          data-item={item.id} data-result="aprobado">
+                          class={"result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition " + btnClass(existing, 'aprobado')}
+                          data-item={item.id} data-result="aprobado" {existing?.result === 'aprobado' ? 'data-active' : ''}>
                           ✓ Aprobado
                         </button>
                         <button type="button"
-                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
-                            {existing?.result === 'observacion' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'border-gray-200 text-gray-400 hover:border-yellow-300'}"
-                          data-item={item.id} data-result="observacion">
+                          class={"result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition " + btnClass(existing, 'observacion')}
+                          data-item={item.id} data-result="observacion" {existing?.result === 'observacion' ? 'data-active' : ''}>
                           ⚠ Observación
                         </button>
                         <button type="button"
-                          class="result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition
-                            {existing?.result === 'rechazado' ? 'bg-red-50 border-red-500 text-red-700' : 'border-gray-200 text-gray-400 hover:border-red-300'}"
-                          data-item={item.id} data-result="rechazado">
+                          class={"result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition " + btnClass(existing, 'rechazado')}
+                          data-item={item.id} data-result="rechazado" {existing?.result === 'rechazado' ? 'data-active' : ''}>
                           ✕ Rechazado
                         </button>
                       </div>
                       <div class="w-full sm:w-48">
                         <input type="text"
-                          class="item-note text-xs px-3 py-1.5 border rounded-lg w-full {existing?.notes ? 'border-gray-300' : 'border-gray-100'}"
+                          class={"item-note text-xs px-3 py-1.5 border rounded-lg w-full " + (existing?.notes ? 'border-gray-300' : 'border-gray-100')}
                           data-item={item.id}
                           placeholder="Nota (opcional)"
                           value={existing?.notes ?? ''} />
@@ -157,7 +195,42 @@ if (inspectionId) {
   {!inspectionId && (
     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <h2 class="text-lg font-bold text-primary mb-4">Historial de Certificaciones</h2>
-      <p class="text-gray-400 text-sm">Las certificaciones completadas aparecerán aquí.</p>
+      {completedWithVehicles.length === 0 ? (
+        <p class="text-gray-400 text-sm">No hay certificaciones completadas aún.</p>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b">
+                <th class="pb-3 pr-4 font-semibold">Vehículo</th>
+                <th class="pb-3 pr-4 font-semibold">Placa</th>
+                <th class="pb-3 pr-4 font-semibold">Completada</th>
+                <th class="pb-3 pr-4 font-semibold">PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {completedWithVehicles.map(ins => (
+                <tr class="border-b border-gray-50 hover:bg-gray-50">
+                  <td class="py-3 pr-4 font-medium text-primary">
+                    {ins.vehicle ? `${ins.vehicle.brand} ${ins.vehicle.model} (${ins.vehicle.year})` : '—'}
+                  </td>
+                  <td class="py-3 pr-4 text-gray-500">{ins.vehicle?.license_plate ?? '—'}</td>
+                  <td class="py-3 pr-4 text-gray-500">
+                    {ins.completed_at ? new Date(ins.completed_at).toLocaleDateString('es-PA', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                  </td>
+                  <td class="py-3">
+                    <a href={`/api/certificacion/${ins.id}/pdf`} target="_blank"
+                      class="bg-primary hover:bg-primary/80 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                      Descargar PDF
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )}
 </DashboardLayout>
@@ -184,9 +257,10 @@ if (inspectionId) {
       return;
     }
 
+    const agentId = document.getElementById('start-inspection')?.dataset.agentId;
     const { data, error } = await supabase
       .from('inspections')
-      .insert({ vehicle_id: vehicleId, status: 'en_progreso' })
+      .insert({ vehicle_id: vehicleId, status: 'en_progreso', agent_id: agentId })
       .select()
       .single();
 
@@ -198,6 +272,13 @@ if (inspectionId) {
     }
     msg.classList.remove('hidden');
   });
+
+  function updateProgress() {
+    const total = document.querySelectorAll('.result-btn').length;
+    const reviewed = document.querySelectorAll('.result-btn[data-active="true"]').length;
+    const el = document.getElementById('reviewed-count');
+    if (el) el.textContent = reviewed;
+  }
 
   // Botones de resultado
   let debounceTimers = {};
@@ -211,17 +292,19 @@ if (inspectionId) {
       // UI: highlight selected
       const group = this.closest('.flex-wrap');
       group.querySelectorAll('.result-btn').forEach(b => {
-        b.className = b.className.replace(/bg-[\w-]+ border-[\w-]+ text-[\w-]+/g, '');
-        b.className = b.className.replace(/\s+/g, ' ');
-        b.className = b.className.replace('border-2', '');
-        b.className = b.className.trim();
-        const base = 'px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition border-gray-200 text-gray-400';
-        b.className = base;
+        b.removeAttribute('data-active');
+        b.className = 'result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition border-gray-200 text-gray-400';
+        if (b.dataset.result === 'aprobado') b.className += ' hover:border-green-300';
+        else if (b.dataset.result === 'observacion') b.className += ' hover:border-yellow-300';
+        else if (b.dataset.result === 'rechazado') b.className += ' hover:border-red-300';
       });
-      this.className = this.className.replace('border-gray-200 text-gray-400', '');
+      this.setAttribute('data-active', 'true');
+      this.className = 'result-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition';
       if (result === 'aprobado') this.className += ' bg-green-50 border-green-500 text-green-700';
       else if (result === 'observacion') this.className += ' bg-yellow-50 border-yellow-500 text-yellow-700';
       else if (result === 'rechazado') this.className += ' bg-red-50 border-red-500 text-red-700';
+
+      updateProgress();
 
       const note = group.querySelector('.item-note')?.value || '';
 
@@ -261,6 +344,9 @@ if (inspectionId) {
     });
   });
 
+  // Initial count on load
+  updateProgress();
+
   // Completar inspección
   document.getElementById('complete-inspection')?.addEventListener('click', async () => {
     if (!confirm('¿Finalizar esta certificación? Los resultados se guardarán como definitivos.')) return;
@@ -275,7 +361,8 @@ if (inspectionId) {
       alert('Error al completar: ' + error.message);
     } else {
       alert('✅ Certificación completada exitosamente.');
-      window.location.href = '/dashboard/certificacion';
+      const inspectionId2 = document.querySelector('[name="inspection_id"]')?.value;
+      window.location.href = '/dashboard/certificacion?inspection=' + (inspectionId2 || '');
     }
   });
 </script>
