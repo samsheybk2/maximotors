@@ -19,7 +19,22 @@ export const onRequest = defineMiddleware(
     }
 
     const cookieHeader = request.headers.get('cookie') ?? '';
-    const hasAuthCookie = cookieHeader.includes('sb-') && cookieHeader.includes('auth-token');
+
+    // Parse cookies into a map for robust checks (avoid brittle substring includes)
+    const cookieMap = cookieHeader
+      .split(';')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .reduce((acc, pair) => {
+        const idx = pair.indexOf('=');
+        if (idx === -1) return acc;
+        const k = pair.slice(0, idx).trim();
+        const v = pair.slice(idx + 1).trim();
+        acc[k] = v;
+        return acc;
+      }, {} as Record<string, string>);
+
+    const hasAuthCookie = Object.keys(cookieMap).some(k => k.startsWith('sb-')) && Boolean(cookieMap['auth-token']);
 
     if (!hasAuthCookie) {
       return redirect('/dashboard/login');
