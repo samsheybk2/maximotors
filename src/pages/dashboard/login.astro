@@ -52,9 +52,9 @@ const description = 'Inicia sesión en el panel de agente de Maxi Motors';
 </html>
 
 <script>
-  import { createBrowserClient } from '@supabase/ssr';
+  import { createClient } from '@supabase/supabase-js';
 
-  const supabase = createBrowserClient(
+  const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY
   );

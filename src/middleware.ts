@@ -34,7 +34,7 @@ export const onRequest = defineMiddleware(
         return acc;
       }, {} as Record<string, string>);
 
-    const hasAuthCookie = Object.keys(cookieMap).some(k => k.startsWith('sb-')) && Boolean(cookieMap['auth-token']);
+    const hasAuthCookie = Object.keys(cookieMap).some(k => k.startsWith('sb-'));
 
     if (!hasAuthCookie) {
       return redirect('/dashboard/login');
