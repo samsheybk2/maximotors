@@ -134,7 +134,15 @@ const navLinks = [
       async function logout() {
         // Clear session on server and client to avoid redirect loops in production
         try {
-          await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ source: 'dashboard' }),
+          });
         } catch (err) {
           // ignore server error and continue to clear client session
         }

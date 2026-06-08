@@ -1,5 +1,20 @@
 import { createServerClient, parseCookieHeader } from '@supabase/ssr';
 
+function corsHeaders(request: Request) {
+  const origin = request.headers.get('origin') || request.headers.get('referer') || '';
+  const allowedOrigin = origin ? origin : '*';
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
+
+export async function OPTIONS({ request }: { request: Request }) {
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
+}
+
 export async function POST({ request, cookies }: { request: Request; cookies: any }) {
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -43,5 +58,5 @@ export async function POST({ request, cookies }: { request: Request; cookies: an
     }
   });
 
-  return new Response(null, { status: 204 });
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
 }
